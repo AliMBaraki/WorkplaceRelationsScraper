@@ -1,0 +1,4 @@
+Scrapy>=2.13.4
+pip>=25.2
+ipython>=9.8.0
+boto3
