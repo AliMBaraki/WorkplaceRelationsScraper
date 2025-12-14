@@ -61,7 +61,7 @@ DOWNLOAD_DELAY = 1
 ITEM_PIPELINES = {
     "workplacerelations.pipelines.WorkplacerelationsPipeline": 500,
 }
-FILES_STORE = 'downloads'
+FILES_STORE = 'local_files'
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
