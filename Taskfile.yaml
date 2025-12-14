@@ -1,0 +1,19 @@
+version: '1'
+  
+tasks:
+  login:
+    cmds:
+      - aws configure
+      - docker login
+
+  down:
+    cmds:
+      - docker-compose down
+
+  up: 
+    cmds:
+    - docker-compose up -d --build
+    
+  transform:
+    cmds:
+    - python main.py

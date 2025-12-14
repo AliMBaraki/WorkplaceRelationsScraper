@@ -2,8 +2,8 @@ import os
 import hashlib
 from datetime import datetime
 import boto3
-from bs4 import BeautifulSoup
 import shutil
+from helpers import parse_date, calculate_file_hash, process_html_file
 
 START_DATE = "2025-11-15"
 END_DATE = "2025-12-14"  
@@ -17,36 +17,6 @@ dynamodb = boto3.resource("dynamodb", region_name="eu-north-1")
 table = dynamodb.Table("workplace_relations")
 new_table = dynamodb.Table(NEW_DYNAMO_TABLE)
 
-def parse_date(date_str):
-    for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(date_str, fmt)
-        except ValueError:
-            continue
-    raise ValueError(f"Unknown date format: {date_str}")
-
-def calculate_file_hash(file_path):
-    """Calculate SHA-256 hash of the file"""
-    hash_sha256 = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        while chunk := f.read(8192):
-            hash_sha256.update(chunk)
-    return hash_sha256.hexdigest()
-
-def process_html_file(file_path):
-    """Process HTML file using BeautifulSoup to extract content"""
-    with open(file_path, "r", encoding="utf-8") as file:
-        content = file.read()
-    
-    soup = BeautifulSoup(content, "html.parser")
-    body = soup.find("body")
-    
-    if body:
-        for unwanted in body.find_all(["header", "footer", "nav", "aside"]):
-            unwanted.decompose()
-        return str(body)
-    
-    return content
 
 response = table.scan()
 items = response.get("Items", [])
