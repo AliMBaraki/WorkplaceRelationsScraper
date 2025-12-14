@@ -1,17 +1,22 @@
+import hashlib
+import os
 import scrapy
 from datetime import datetime
 from urllib.parse import urlencode
 
+DOWNLOAD_DIR = "downloads"
 
 class WorkplacespiderSpider(scrapy.Spider):
     name = "workplacespider"
     allowed_domains = ["www.workplacerelations.ie"]
 
     def start_requests(self):
+        self.from_date = "15/11/2025"
+        self.to_date = "24/11/2025"
         params = {
             "decisions": 1,
-            "from": "15/11/2025",
-            "to": "14/12/2025",
+            "from": self.from_date,
+            "to": self.to_date,
             "pageNumber": 1
         }
 
@@ -36,7 +41,7 @@ class WorkplacespiderSpider(scrapy.Spider):
 
         # Extract records
         for item in items:
-            yield {
+            record =  {
                 "title": item.css('h2.title a::text').get(),
                 "identifier": item.css('span.refNO::text').get(),
                 "decision_date": datetime.strptime(
@@ -52,6 +57,12 @@ class WorkplacespiderSpider(scrapy.Spider):
                 ),
                 "partition_date": response.meta["partition_date"]
             }
+            yield scrapy.Request(
+            url=record["link"],
+            callback=self.parse_link,
+            meta={"record": record},
+            dont_filter=True
+            )
 
         # Paginate if page is full (10 items)
         if len(items) == 10:
@@ -59,8 +70,8 @@ class WorkplacespiderSpider(scrapy.Spider):
 
             params = {
                 "decisions": 1,
-                "from": "1/12/2025",
-                "to": "14/12/2025",
+                "from": self.from_date,
+                "to": self.to_date,
                 "pageNumber": next_page
             }
 
@@ -74,3 +85,33 @@ class WorkplacespiderSpider(scrapy.Spider):
                     "partition_date": response.meta["partition_date"]
                 }
             )
+    def parse_link(self, response):
+        record = response.meta["record"]
+        os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+        content_type = response.headers.get('Content-Type', b'').decode('utf-8')
+
+        # Determine file extension
+        if "pdf" in content_type:
+            ext = ".pdf"
+        elif "msword" in content_type or "word" in content_type:
+            ext = ".doc"
+        else:
+            ext = ".html"
+
+        # Build file path
+        filename = f"{record['identifier']}{ext}"
+        file_path = os.path.join(DOWNLOAD_DIR, filename)
+
+        # Save content
+        with open(file_path, "wb") as f:
+            f.write(response.body)
+
+        # Calculate hash
+        file_hash = hashlib.sha256(response.body).hexdigest()
+
+        # Update record
+        record["file_path"] = file_path
+        record["file_hash"] = file_hash
+
+        yield record
