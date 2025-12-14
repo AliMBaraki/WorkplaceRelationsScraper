@@ -55,7 +55,9 @@ class WorkplacespiderSpider(scrapy.Spider):
                 "link": response.urljoin(
                     item.css('a.btn.btn-primary::attr(href)').get()
                 ),
-                "partition_date": response.meta["partition_date"]
+                "partition_date": response.meta["partition_date"],
+                "start_date": self.from_date,
+                "end_date": self.to_date
             }
             yield scrapy.Request(
             url=record["link"],
