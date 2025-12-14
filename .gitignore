@@ -1,3 +1,4 @@
 .env
 .\venv
 downloads
+processed_files

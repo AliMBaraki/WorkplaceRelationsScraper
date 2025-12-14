@@ -11,8 +11,8 @@ class WorkplacespiderSpider(scrapy.Spider):
     allowed_domains = ["www.workplacerelations.ie"]
 
     def start_requests(self):
-        self.from_date = "15/11/2025"
-        self.to_date = "24/11/2025"
+        self.from_date = "15/9/2025"
+        self.to_date = "14/12/2025"
         params = {
             "decisions": 1,
             "from": self.from_date,
@@ -34,12 +34,10 @@ class WorkplacespiderSpider(scrapy.Spider):
     def parse(self, response):
         items = response.css('li.each-item')
 
-        # Stop if no results
         if not items:
             self.logger.info("No more results found. Pagination complete.")
             return
 
-        # Extract records
         for item in items:
             record =  {
                 "title": item.css('h2.title a::text').get(),
@@ -55,7 +53,9 @@ class WorkplacespiderSpider(scrapy.Spider):
                 "link": response.urljoin(
                     item.css('a.btn.btn-primary::attr(href)').get()
                 ),
-                "partition_date": response.meta["partition_date"]
+                "partition_date": response.meta["partition_date"],
+                "start_date": self.from_date,
+                "end_date": self.to_date
             }
             yield scrapy.Request(
             url=record["link"],
@@ -64,7 +64,6 @@ class WorkplacespiderSpider(scrapy.Spider):
             dont_filter=True
             )
 
-        # Paginate if page is full (10 items)
         if len(items) == 10:
             next_page = response.meta["page"] + 1
 
@@ -91,7 +90,6 @@ class WorkplacespiderSpider(scrapy.Spider):
 
         content_type = response.headers.get('Content-Type', b'').decode('utf-8')
 
-        # Determine file extension
         if "pdf" in content_type:
             ext = ".pdf"
         elif "msword" in content_type or "word" in content_type:
@@ -99,18 +97,14 @@ class WorkplacespiderSpider(scrapy.Spider):
         else:
             ext = ".html"
 
-        # Build file path
         filename = f"{record['identifier']}{ext}"
         file_path = os.path.join(DOWNLOAD_DIR, filename)
 
-        # Save content
         with open(file_path, "wb") as f:
             f.write(response.body)
 
-        # Calculate hash
         file_hash = hashlib.sha256(response.body).hexdigest()
 
-        # Update record
         record["file_path"] = file_path
         record["file_hash"] = file_hash
 
