@@ -11,8 +11,8 @@ class WorkplacespiderSpider(scrapy.Spider):
     allowed_domains = ["www.workplacerelations.ie"]
 
     def start_requests(self):
-        self.from_date = "15/11/2025"
-        self.to_date = "24/11/2025"
+        self.from_date = "15/9/2025"
+        self.to_date = "14/12/2025"
         params = {
             "decisions": 1,
             "from": self.from_date,
